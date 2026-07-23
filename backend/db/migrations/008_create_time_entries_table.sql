@@ -1,0 +1,12 @@
+CREATE TABLE IF NOT EXISTS time_entries (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  project_id INT NOT NULL,
+  user_id INT NOT NULL,
+  entry_date DATE NOT NULL,
+  hours DECIMAL(5, 2) NOT NULL,
+  note TEXT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  CONSTRAINT fk_time_entries_project FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE,
+  CONSTRAINT fk_time_entries_user FOREIGN KEY (user_id) REFERENCES users(id)
+);

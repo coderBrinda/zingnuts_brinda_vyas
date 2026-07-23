@@ -44,3 +44,14 @@ export async function create({ name, email, password, roleId }) {
   );
   return findActiveById(result.insertId);
 }
+
+export async function findActiveMembers() {
+  const [rows] = await pool.execute(
+    `SELECT u.id, u.name, u.email
+     FROM users u
+     INNER JOIN roles r ON u.role_id = r.id
+     WHERE r.name = 'member' AND u.is_active = 1
+     ORDER BY u.name ASC`
+  );
+  return rows;
+}

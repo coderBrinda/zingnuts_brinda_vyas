@@ -20,6 +20,8 @@ Migrations run automatically when the server starts (`src/index.js`).
 | `004_seed_users.sql` | Seeds default users |
 | `005_create_projects_table.sql` | Creates `projects` table |
 | `006_create_project_managers_table.sql` | Creates `project_managers` table |
+| `007_create_project_members_table.sql` | Creates `project_members` table |
+| `008_create_time_entries_table.sql` | Creates `time_entries` table |
 
 ## Add a new table
 
