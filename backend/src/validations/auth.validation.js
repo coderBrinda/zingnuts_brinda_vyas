@@ -1,5 +1,19 @@
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const ALLOWED_SIGN_UP_ROLES = ['member'];
+const VALID_ROLES = ['admin', 'pm', 'member'];
+
+function resolveSignUpRole(body) {
+  const roleInput = body.role ?? body.roleName;
+
+  if (roleInput === undefined || roleInput === null) {
+    return 'member';
+  }
+
+  if (typeof roleInput !== 'string' || !roleInput.trim()) {
+    return 'member';
+  }
+
+  return roleInput.trim().toLowerCase();
+}
 
 export function validateSignIn(body) {
   const errors = [];
@@ -28,7 +42,7 @@ export function validateSignUp(body) {
   const name = typeof body.name === 'string' ? body.name.trim() : '';
   const email = typeof body.email === 'string' ? body.email.trim().toLowerCase() : '';
   const password = typeof body.password === 'string' ? body.password : '';
-  const role = typeof body.role === 'string' ? body.role.trim().toLowerCase() : 'member';
+  const role = resolveSignUpRole(body);
 
   if (!name) {
     errors.push({ field: 'name', message: 'Name is required' });
@@ -48,8 +62,8 @@ export function validateSignUp(body) {
     errors.push({ field: 'password', message: 'Password must be at least 8 characters' });
   }
 
-  if (!ALLOWED_SIGN_UP_ROLES.includes(role)) {
-    errors.push({ field: 'role', message: 'Invalid role for registration' });
+  if (!VALID_ROLES.includes(role)) {
+    errors.push({ field: 'role', message: 'Role must be admin, pm, or member' });
   }
 
   return {
