@@ -20,7 +20,16 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (typeof window !== "undefined" && error.response?.status === 401) {
+    const requestUrl = error.config?.url ?? "";
+    const isAuthRequest =
+      requestUrl.includes("/auth/sign-in") ||
+      requestUrl.includes("/auth/sign-up");
+
+    if (
+      typeof window !== "undefined" &&
+      error.response?.status === 401 &&
+      !isAuthRequest
+    ) {
       localStorage.removeItem("token");
       document.cookie = "pm_token=; path=/; max-age=0";
       window.location.href = "/login";

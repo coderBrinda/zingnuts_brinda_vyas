@@ -45,13 +45,29 @@ export default function LoginPage() {
     setError("");
   }
 
+  function handleFieldChange(field, value) {
+    if (field === "email") {
+      setEmail(value);
+    } else {
+      setPassword(value);
+    }
+    setSelectedRole("");
+    setError("");
+  }
+
   async function handleSubmit(event) {
     event.preventDefault();
     setError("");
     setLoading(true);
 
+    const formData = new FormData(event.currentTarget);
+    const submittedEmail = String(formData.get("email") ?? email)
+      .trim()
+      .toLowerCase();
+    const submittedPassword = String(formData.get("password") ?? password);
+
     try {
-      await login(email, password);
+      await login(submittedEmail, submittedPassword);
       router.push("/dashboard");
     } catch (err) {
       setError(
@@ -67,7 +83,7 @@ export default function LoginPage() {
       <div className="w-full max-w-md rounded-xl bg-card p-10 shadow-lg">
         <div className="mb-8 text-center">
           <p className="text-sm font-medium uppercase tracking-wide text-primary">
-            PM Time Tracker
+            Zingnuts
           </p>
           <h1 className="mt-2 text-2xl font-bold text-foreground">
             Sign in to your account
@@ -82,18 +98,20 @@ export default function LoginPage() {
             label="Email"
             name="email"
             type="email"
+            autoComplete="email"
             placeholder="you@company.com"
             value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            onChange={(e) => handleFieldChange("email", e.target.value)}
             required
           />
           <Input
             label="Password"
             name="password"
             type="password"
+            autoComplete="current-password"
             placeholder="Enter your password"
             value={password}
-            onChange={(e) => setPassword(e.target.value)}
+            onChange={(e) => handleFieldChange("password", e.target.value)}
             required
           />
 

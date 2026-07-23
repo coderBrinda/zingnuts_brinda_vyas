@@ -7,7 +7,7 @@ const inter = Inter({
 });
 
 export const metadata = {
-  title: "PM Time Tracker | Zingnuts",
+  title: " Zingnuts",
   description: "Track project hours against monthly caps",
 };
 
