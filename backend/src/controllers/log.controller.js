@@ -19,7 +19,7 @@ class LogController {
 
   // POST /api/v1/projects/:projectId/time-entries
   createTimeEntry = async (req, res) => {
-    const validation = validateCreateTimeEntry(req.body);
+    const validation = validateCreateTimeEntry(req.body, { role: req.user.role });
 
     if (!validation.isValid) {
       return sendError(res, 400, 'Validation failed', 'VALIDATION_ERROR', validation.errors);
@@ -42,7 +42,7 @@ class LogController {
       return sendError(res, 400, 'Validation failed', 'VALIDATION_ERROR', idValidation.errors);
     }
 
-    const validation = validateUpdateTimeEntry(req.body);
+    const validation = validateUpdateTimeEntry(req.body, { role: req.user.role });
 
     if (!validation.isValid) {
       return sendError(res, 400, 'Validation failed', 'VALIDATION_ERROR', validation.errors);

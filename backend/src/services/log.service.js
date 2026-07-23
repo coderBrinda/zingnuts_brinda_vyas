@@ -185,6 +185,24 @@ class LogService {
     return response;
   };
 
+  async assertNoDuplicateEntry({ projectId, userId, entryDate, excludeEntryId }) {
+    const existing = await logRepository.findByUserProjectDate({
+      projectId,
+      userId,
+      entryDate,
+      excludeEntryId,
+    });
+
+    if (existing) {
+      throw new AppError(
+        400,
+        'You already logged time for this date on this project',
+        'VALIDATION_ERROR',
+        [{ field: 'entryDate', message: 'You already logged time for this date on this project' }]
+      );
+    }
+  }
+
   createTimeEntry = async (projectId, payload, user) => {
     const project = await projectRepository.findById(projectId);
 
@@ -193,6 +211,12 @@ class LogService {
     }
 
     await this.assertCanLogTime(project, user);
+
+    await this.assertNoDuplicateEntry({
+      projectId,
+      userId: user.userId,
+      entryDate: payload.entryDate,
+    });
 
     const entry = await logRepository.create({
       projectId,
@@ -230,6 +254,19 @@ class LogService {
     }
 
     await this.assertCanManageEntry(entry, user);
+
+    const nextEntryDate = payload.entryDate ?? (
+      entry.entry_date instanceof Date
+        ? entry.entry_date.toISOString().slice(0, 10)
+        : String(entry.entry_date).slice(0, 10)
+    );
+
+    await this.assertNoDuplicateEntry({
+      projectId: entry.project_id,
+      userId: entry.user_id,
+      entryDate: nextEntryDate,
+      excludeEntryId: entry.id,
+    });
 
     const updatedEntry = await logRepository.update(entryId, payload);
     const response = this.mapEntry(updatedEntry);

@@ -12,6 +12,30 @@ const ENTRY_SELECT = `
   u.name AS user_name
 `;
 
+export async function findByUserProjectDate({ projectId, userId, entryDate, excludeEntryId }) {
+  const conditions = [
+    'te.project_id = ?',
+    'te.user_id = ?',
+    'te.entry_date = ?',
+  ];
+  const values = [projectId, userId, entryDate];
+
+  if (excludeEntryId) {
+    conditions.push('te.id != ?');
+    values.push(excludeEntryId);
+  }
+
+  const [rows] = await pool.execute(
+    `SELECT te.id
+     FROM time_entries te
+     WHERE ${conditions.join(' AND ')}
+     LIMIT 1`,
+    values
+  );
+
+  return rows[0] || null;
+}
+
 export async function create({ projectId, userId, entryDate, hours, note }) {
   const [result] = await pool.execute(
     `INSERT INTO time_entries (project_id, user_id, entry_date, hours, note)
@@ -65,6 +89,17 @@ export async function sumHoursForProjectMonth(projectId, startDate, endDate) {
      WHERE project_id = ?
        AND entry_date BETWEEN ? AND ?`,
     [projectId, startDate, endDate]
+  );
+  return Number(rows[0].total_hours);
+}
+
+export async function sumHoursForUserMonth(userId, startDate, endDate) {
+  const [rows] = await pool.execute(
+    `SELECT COALESCE(SUM(hours), 0) AS total_hours
+     FROM time_entries
+     WHERE user_id = ?
+       AND entry_date BETWEEN ? AND ?`,
+    [userId, startDate, endDate]
   );
   return Number(rows[0].total_hours);
 }

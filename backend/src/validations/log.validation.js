@@ -1,5 +1,10 @@
 const MAX_HOURS_PER_ENTRY = 24;
+const MAX_HOURS_MEMBER = 10;
 const MAX_NOTE_LENGTH = 1000;
+
+function getMaxHoursForRole(role) {
+  return role === 'member' ? MAX_HOURS_MEMBER : MAX_HOURS_PER_ENTRY;
+}
 
 function isValidDateString(value) {
   if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value)) {
@@ -10,8 +15,9 @@ function isValidDateString(value) {
   return !Number.isNaN(date.getTime()) && date.toISOString().slice(0, 10) === value;
 }
 
-export function validateCreateTimeEntry(body) {
+export function validateCreateTimeEntry(body, { role } = {}) {
   const errors = [];
+  const maxHours = getMaxHoursForRole(role);
   const entryDate = typeof body.entryDate === 'string' ? body.entryDate.trim() : '';
   const hours = Number(body.hours);
   const note = body.note === undefined || body.note === null
@@ -30,8 +36,8 @@ export function validateCreateTimeEntry(body) {
     errors.push({ field: 'hours', message: 'Hours is required' });
   } else if (Number.isNaN(hours) || hours <= 0) {
     errors.push({ field: 'hours', message: 'Hours must be a number greater than 0' });
-  } else if (hours > MAX_HOURS_PER_ENTRY) {
-    errors.push({ field: 'hours', message: `Hours must be at most ${MAX_HOURS_PER_ENTRY}` });
+  } else if (hours > maxHours) {
+    errors.push({ field: 'hours', message: `Hours must be at most ${maxHours}` });
   }
 
   if (body.note !== undefined && body.note !== null && typeof body.note !== 'string') {
@@ -51,8 +57,9 @@ export function validateCreateTimeEntry(body) {
   };
 }
 
-export function validateUpdateTimeEntry(body) {
+export function validateUpdateTimeEntry(body, { role } = {}) {
   const errors = [];
+  const maxHours = getMaxHoursForRole(role);
   const hasEntryDate = Object.prototype.hasOwnProperty.call(body, 'entryDate');
   const hasHours = Object.prototype.hasOwnProperty.call(body, 'hours');
   const hasNote = Object.prototype.hasOwnProperty.call(body, 'note');
@@ -81,8 +88,8 @@ export function validateUpdateTimeEntry(body) {
 
   if (hasHours && (Number.isNaN(hours) || hours <= 0)) {
     errors.push({ field: 'hours', message: 'Hours must be a number greater than 0' });
-  } else if (hours !== undefined && hours > MAX_HOURS_PER_ENTRY) {
-    errors.push({ field: 'hours', message: `Hours must be at most ${MAX_HOURS_PER_ENTRY}` });
+  } else if (hours !== undefined && hours > maxHours) {
+    errors.push({ field: 'hours', message: `Hours must be at most ${maxHours}` });
   }
 
   if (hasNote && note !== null && note !== undefined && typeof note !== 'string') {

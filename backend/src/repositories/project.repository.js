@@ -46,6 +46,19 @@ export async function findAllForPm(userId) {
   return rows;
 }
 
+export async function findAllForMember(userId) {
+  const [rows] = await pool.execute(
+    `SELECT ${PROJECT_SELECT}
+     FROM projects p
+     INNER JOIN users u ON p.created_by = u.id
+     INNER JOIN project_members pm ON pm.project_id = p.id
+     WHERE pm.user_id = ?
+     ORDER BY p.created_at DESC`,
+    [userId]
+  );
+  return rows;
+}
+
 export async function isManager(projectId, userId) {
   const [rows] = await pool.execute(
     `SELECT 1

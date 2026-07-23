@@ -1,7 +1,18 @@
+import * as assignRepository from '../repositories/assign.repository.js';
 import * as projectRepository from '../repositories/project.repository.js';
 import * as userRepository from '../repositories/user.repository.js';
+import * as logRepository from '../repositories/log.repository.js';
 import { AppError } from '../utils/AppError.js';
-import { buildUsage } from '../utils/usage.js';
+import { buildUsage, getCurrentMonthKey } from '../utils/usage.js';
+
+function getMonthDateRange(monthKey = getCurrentMonthKey()) {
+  const [year, month] = monthKey.split('-').map(Number);
+  const startDate = `${monthKey}-01`;
+  const lastDay = new Date(Date.UTC(year, month, 0)).getUTCDate();
+  const endDate = `${monthKey}-${String(lastDay).padStart(2, '0')}`;
+
+  return { startDate, endDate };
+}
 
 class ProjectService {
   mapProject(project, { includeManagers = false } = {}) {
@@ -14,7 +25,7 @@ class ProjectService {
         id: project.created_by,
         name: project.creator_name,
       },
-      usage: buildUsage(project.monthly_hour_cap, 0),
+      usage: project.usage ?? buildUsage(project.monthly_hour_cap, 0),
       createdAt: project.created_at,
     };
 
@@ -43,8 +54,17 @@ class ProjectService {
     if (user.role === 'pm') {
       const isCreator = project.created_by === user.userId;
       const isAssignedManager = await projectRepository.isManager(project.id, user.userId);
+      const isAssignedMember = await assignRepository.isMember(project.id, user.userId);
 
-      if (isCreator || isAssignedManager) {
+      if (isCreator || isAssignedManager || isAssignedMember) {
+        return;
+      }
+    }
+
+    if (user.role === 'member') {
+      const isAssignedMember = await assignRepository.isMember(project.id, user.userId);
+
+      if (isAssignedMember) {
         return;
       }
     }
@@ -81,6 +101,32 @@ class ProjectService {
     throw new AppError(403, 'You do not have permission to delete this project', 'FORBIDDEN');
   }
 
+  async mapProjectWithUsage(project, { includeManagers = false } = {}) {
+    const { startDate, endDate } = getMonthDateRange();
+    const currentMonthHours = await logRepository.sumHoursForProjectMonth(
+      project.id,
+      startDate,
+      endDate
+    );
+
+    return this.mapProject(
+      {
+        ...project,
+        usage: buildUsage(project.monthly_hour_cap, currentMonthHours),
+      },
+      { includeManagers }
+    );
+  }
+
+  mapProjectForMember(project) {
+    return {
+      id: project.id,
+      projectName: project.project_name,
+      clientName: project.client_name,
+      createdAt: project.created_at,
+    };
+  }
+
   listProjects = async (user) => {
     let projects = [];
 
@@ -88,11 +134,14 @@ class ProjectService {
       projects = await projectRepository.findAllForAdmin();
     } else if (user.role === 'pm') {
       projects = await projectRepository.findAllForPm(user.userId);
+    } else if (user.role === 'member') {
+      projects = await projectRepository.findAllForMember(user.userId);
+      return projects.map((project) => this.mapProjectForMember(project));
     } else {
       throw new AppError(403, 'Access denied', 'FORBIDDEN');
     }
 
-    return projects.map((project) => this.mapProject(project));
+    return Promise.all(projects.map((project) => this.mapProjectWithUsage(project)));
   };
 
   getProjectById = async (projectId, user) => {
@@ -104,9 +153,13 @@ class ProjectService {
 
     await this.assertCanViewProject(project, user);
 
+    if (user.role === 'member') {
+      return this.mapProjectForMember(project);
+    }
+
     const managers = await projectRepository.getManagers(projectId);
 
-    return this.mapProject(
+    return this.mapProjectWithUsage(
       {
         ...project,
         managers: managers.map((manager) => ({
